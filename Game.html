@@ -202,41 +202,68 @@ let realShown = 0;
 let deepfakeShown = 0;
 let currentMedia = '';
 let currentType = '';
+let buttonsDisabled = false;
+let usedRealImages = []; 
+let usedDeepfakeImages = []; 
+let usedDeepfakeVideos = [];
+
+function disableButtons() {
+    document.getElementById('realBtn').disabled = true;
+    document.getElementById('deepfakeBtn').disabled = true;
+}
+
+function enableButtons() {
+    document.getElementById('realBtn').disabled = false;
+    document.getElementById('deepfakeBtn').disabled = false;
+}
 
 function getRandomMedia() {
     if (attempts >= 5) {
         return;
     }
-    
-    const isReal = Math.random() < 0.5;
-    const isImage = Math.random() < 0.5;
+
+    let isReal = Math.random() < 0.5;
+    let isImage = Math.random() < 0.5;
 
     if (isImage) {
-        if (isReal) {
-            currentMedia = realImages[Math.floor(Math.random() * realImages.length)];
+        let availableRealImages = realImages.filter((image, index) => !usedRealImages.includes(index));
+        let availableDeepfakeImages = deepfakeImages.filter((image, index) => !usedDeepfakeImages.includes(index));
+
+        if (isReal && availableRealImages.length > 0) {
+            currentMedia = availableRealImages[Math.floor(Math.random() * availableRealImages.length)];
             currentType = 'real';
-        } else {
-            currentMedia = deepfakeImages[Math.floor(Math.random() * deepfakeImages.length)];
+            usedRealImages.push(realImages.indexOf(currentMedia)); // Mark as used
+        } else if (!isReal && availableDeepfakeImages.length > 0) {
+            currentMedia = availableDeepfakeImages[Math.floor(Math.random() * availableDeepfakeImages.length)];
             currentType = 'deepfake';
+            usedDeepfakeImages.push(deepfakeImages.indexOf(currentMedia)); // Mark as used
         }
         document.getElementById('image').src = currentMedia;
         document.getElementById('image').style.display = 'block';
         document.getElementById('video').style.display = 'none';
     } else {
-        currentMedia = deepfakeVideos[Math.floor(Math.random() * deepfakeVideos.length)];
-        currentType = 'deepfake';
+        let availableDeepfakeVideos = deepfakeVideos.filter((video, index) => !usedDeepfakeVideos.includes(index));
+        if (availableDeepfakeVideos.length > 0) {
+            currentMedia = availableDeepfakeVideos[Math.floor(Math.random() * availableDeepfakeVideos.length)];
+            currentType = 'deepfake';
+            usedDeepfakeVideos.push(deepfakeVideos.indexOf(currentMedia)); // Mark as used
+        }
+
         document.getElementById('video').src = currentMedia;
         document.getElementById('video').style.display = 'block';
         document.getElementById('image').style.display = 'none';
     }
+
+    enableButtons();
 }
 
 function evaluate(type) {
-    if (attempts >= 5) {
-        document.getElementById('result').innerHTML = '<span class="game-over">Game Over!</span>';
-        document.getElementById('tryAgainBtn').style.display = 'inline-block';
+    if (attempts >= 5 || buttonsDisabled) {
         return;
     }
+
+    buttonsDisabled = true;
+    disableButtons();
 
     attempts++;
     if (type === currentType) {
@@ -268,16 +295,23 @@ function evaluate(type) {
             document.getElementById('result').textContent = '';
             document.getElementById('result').classList.remove('correct', 'wrong');
             getRandomMedia();
+            buttonsDisabled = false;
         }, 1000);
+    } else {
+        document.getElementById('result').innerHTML = '<span class="game-over">Game Over!</span>';
+        document.getElementById('tryAgainBtn').style.display = 'inline-block';
     }
 }
 
 document.getElementById('tryAgainBtn').addEventListener('click', function() {
-    attempts = 0; 
-    correctAttempts = 0; 
-    wrongAttempts = 0; 
+    attempts = 0;
+    correctAttempts = 0;
+    wrongAttempts = 0;
     realShown = 0;
     deepfakeShown = 0;
+    usedRealImages = [];
+    usedDeepfakeImages = [];
+    usedDeepfakeVideos = [];
 
     document.getElementById('attemptCount').textContent = attempts;
     document.getElementById('correctCount').textContent = correctAttempts;
@@ -285,9 +319,10 @@ document.getElementById('tryAgainBtn').addEventListener('click', function() {
     document.getElementById('realCount').textContent = realShown;
     document.getElementById('deepfakeCount').textContent = deepfakeShown;
 
-    document.getElementById('result').textContent = ''; 
-    document.getElementById('result').classList.remove('correct', 'wrong'); 
-    document.getElementById('tryAgainBtn').style.display = 'none'; 
+    document.getElementById('result').textContent = '';
+    document.getElementById('result').classList.remove('correct', 'wrong');
+    document.getElementById('tryAgainBtn').style.display = 'none';
+    buttonsDisabled = false;
     getRandomMedia();
 });
 
@@ -307,6 +342,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('deepfakeCount').textContent = deepfakeShown;
 
     getRandomMedia();
+});
 });
 
    </script>
